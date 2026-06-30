@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcDiff — Smart Numerical Difference Calculator</title>
+  <meta name="description" content="Kalkulator diferensiasi numerik cerdas dengan metode Forward, Backward, dan Central Difference. Visualisasi interaktif dan perbandingan akurasi." />
+  <link rel="icon" type="image/png" href="images/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+</head>
+<body>
+
+<!-- ░░ HEADER ░░ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <img src="images/logo.png" alt="CalcDiff Logo" class="logo-img" />
+      <span class="logo-badge">Numerik</span>
+    </div>
+    <nav class="header-nav">
+      <span class="nav-label">Komputasi Numerik</span>
+      <span class="nav-divider">·</span>
+      <span class="nav-label">Finite Difference</span>
+    </nav>
+    <div class="header-meta">
+      <span id="activeMethodBadge" class="method-badge badge-forward">FORWARD</span>
+      <span id="activeOrderBadge" class="order-badge">Orde 1</span>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Toggle panel" onclick="toggleMobilePanel()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- ░░ PANEL OVERLAY ░░ -->
+<div class="panel-overlay" id="panelOverlay" onclick="closeMobilePanel()"></div>
+
+<!-- ░░ MAIN LAYOUT ░░ -->
+<main class="app-layout">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <aside class="left-panel">
+    <div class="panel-section">
+      <label class="section-label">FUNGSI f(x)</label>
+      <div class="func-input-wrap">
+        <span class="func-prefix">f =</span>
+        <input type="text" id="funcInput" class="func-input" value="x**2" placeholder="contoh: x**2" spellcheck="false" />
+      </div>
+      <div class="func-shortcuts">
+        <button class="shortcut-btn" onclick="insertFunc('x**2')">x²</button>
+        <button class="shortcut-btn" onclick="insertFunc('x**3')">x³</button>
+        <button class="shortcut-btn" onclick="insertFunc('sin(x)')">sin</button>
+        <button class="shortcut-btn" onclick="insertFunc('cos(x)')">cos</button>
+        <button class="shortcut-btn" onclick="insertFunc('tan(x)')">tan</button>
+        <button class="shortcut-btn" onclick="insertFunc('log(x)')">ln</button>
+        <button class="shortcut-btn" onclick="insertFunc('exp(x)')">eˣ</button>
+        <button class="shortcut-btn" onclick="insertFunc('sqrt(x)')">√x</button>
+        <button class="shortcut-btn" onclick="insertFunc('1/(1+x**2)')">1/(1+x²)</button>
+        <button class="shortcut-btn" onclick="insertFunc('pow(x,4)-3*pow(x,2)+2')">x⁴−3x²+2</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <label class="section-label">TITIK & STEP</label>
+      <div class="input-grid-2">
+        <div class="input-group">
+          <label class="input-label" for="xInput">Titik x₀</label>
+          <input type="number" id="xInput" class="ctrl-input" value="1" step="0.1" />
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="hInput">Step h</label>
+          <input type="number" id="hInput" class="ctrl-input" value="0.1" step="0.01" min="0.0001" />
+        </div>
+      </div>
+      <div class="input-grid-2">
+        <div class="input-group">
+          <label class="input-label" for="rangeMinInput">x min (grafik)</label>
+          <input type="number" id="rangeMinInput" class="ctrl-input" value="-2" step="0.5" />
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="rangeMaxInput">x max (grafik)</label>
+          <input type="number" id="rangeMaxInput" class="ctrl-input" value="4" step="0.5" />
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <label class="section-label">ORDE TURUNAN</label>
+      <div class="order-tabs">
+        <button class="order-tab active" id="order1" onclick="selectOrder(1)">Orde 1<br/><small>f'(x)</small></button>
+        <button class="order-tab" id="order2" onclick="selectOrder(2)">Orde 2<br/><small>f''(x)</small></button>
+        <button class="order-tab" id="order3" onclick="selectOrder(3)">Orde 3<br/><small>f'''(x)</small></button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <label class="section-label">PILIH METODE</label>
+      <div class="method-cards">
+        <button class="method-card active" id="mForward" onclick="selectMethod('forward')">
+          <span class="method-icon">→</span>
+          <div class="method-info">
+            <span class="method-name">Forward</span>
+            <span class="method-desc">FORWARD DIFF</span>
+          </div>
+        </button>
+        <button class="method-card" id="mBackward" onclick="selectMethod('backward')">
+          <span class="method-icon">←</span>
+          <div class="method-info">
+            <span class="method-name">Backward</span>
+            <span class="method-desc">BACKWARD DIFF</span>
+          </div>
+        </button>
+        <button class="method-card" id="mCentral" onclick="selectMethod('central')">
+          <span class="method-icon">↔</span>
+          <div class="method-info">
+            <span class="method-name">Central</span>
+            <span class="method-desc">CENTRAL DIFF</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <button class="calc-btn" id="calcBtn" onclick="calculate()">
+      <span class="calc-icon">∂</span>
+      Hitung Turunan
+    </button>
+
+    <div class="panel-section error-section" style="margin-top:1rem;">
+      <div id="errorMsg" class="error-msg" style="display:none;"></div>
+    </div>
+  </aside>
+
+  <!-- ══ RIGHT CONTENT ══ -->
+  <section class="right-content">
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist">
+      <button class="tab-btn active" id="tab-vis"      onclick="switchTab('vis')"      role="tab">📈 Visualisasi</button>
+      <button class="tab-btn"        id="tab-table"    onclick="switchTab('table')"    role="tab">📋 Tabel Perhitungan</button>
+      <button class="tab-btn"        id="tab-formula"  onclick="switchTab('formula')"  role="tab">🔢 Ringkasan & Formula</button>
+      <button class="tab-btn"        id="tab-compare"  onclick="switchTab('compare')"  role="tab">⚖ Perbandingan</button>
+      <button class="tab-btn"        id="tab-conv"     onclick="switchTab('conv')"     role="tab">📉 Konvergensi</button>
+      <button class="tab-btn"        id="tab-info"     onclick="switchTab('info')"     role="tab">ℹ️ Teori</button>
+    </nav>
+
+    <!-- ── STAT BAR ── -->
+    <div class="stat-bar">
+      <div class="stat-card" id="statResult">
+        <span class="stat-val" id="statResultVal">—</span>
+        <span class="stat-label">Nilai Aproksimasi</span>
+      </div>
+      <div class="stat-card" id="statErrFwd">
+        <span class="stat-val accent-orange" id="statErrFwdVal">—</span>
+        <span class="stat-label">Error Forward vs Central</span>
+      </div>
+      <div class="stat-card" id="statErrBwd">
+        <span class="stat-val accent-red" id="statErrBwdVal">—</span>
+        <span class="stat-label">Error Backward vs Central</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-val accent-blue" id="statMethod">—</span>
+        <span class="stat-label">Metode Aktif</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-val" id="statHVal">—</span>
+        <span class="stat-label">Step h</span>
+      </div>
+    </div>
+
+    <!-- ── TAB PANELS ── -->
+
+    <!-- VISUALISASI -->
+    <div class="tab-panel active" id="panel-vis">
+      <div class="chart-container">
+        <canvas id="mainChart"></canvas>
+        <div class="chart-legend" id="chartLegend"></div>
+      </div>
+    </div>
+
+    <!-- TABEL -->
+    <div class="tab-panel" id="panel-table">
+      <div class="table-toolbar">
+        <span class="table-info" id="tableInfo">Jalankan kalkulasi untuk melihat tabel.</span>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th>i</th>
+              <th>xᵢ</th>
+              <th>f(xᵢ)</th>
+              <th>f'(xᵢ) approx</th>
+              <th>Δ (selisih)</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="5" class="empty-cell">Belum ada data. Tekan "Hitung Turunan".</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FORMULA -->
+    <div class="tab-panel" id="panel-formula">
+      <div class="formula-grid">
+        <div class="formula-card card-forward">
+          <div class="fc-header">
+            <span class="fc-icon">→</span>
+            <h3>Forward Difference</h3>
+          </div>
+          <div class="fc-formula" id="fwdFormula"></div>
+          <div class="fc-result">
+            <span class="fc-label">Hasil:</span>
+            <span class="fc-val" id="fwdResult">—</span>
+          </div>
+          <div class="fc-desc">
+            <p>Menggunakan titik di <strong>kanan</strong> x₀. Error orde O(h). Cocok untuk awal interval.</p>
+          </div>
+        </div>
+        <div class="formula-card card-backward">
+          <div class="fc-header">
+            <span class="fc-icon">←</span>
+            <h3>Backward Difference</h3>
+          </div>
+          <div class="fc-formula" id="bwdFormula"></div>
+          <div class="fc-result">
+            <span class="fc-label">Hasil:</span>
+            <span class="fc-val" id="bwdResult">—</span>
+          </div>
+          <div class="fc-desc">
+            <p>Menggunakan titik di <strong>kiri</strong> x₀. Error orde O(h). Cocok untuk akhir interval.</p>
+          </div>
+        </div>
+        <div class="formula-card card-central">
+          <div class="fc-header">
+            <span class="fc-icon">↔</span>
+            <h3>Central Difference</h3>
+          </div>
+          <div class="fc-formula" id="cdFormula"></div>
+          <div class="fc-result">
+            <span class="fc-label">Hasil:</span>
+            <span class="fc-val" id="cdResult">—</span>
+          </div>
+          <div class="fc-desc">
+            <p>Menggunakan titik di <strong>kiri dan kanan</strong> x₀. Error orde O(h²). <strong>Paling akurat.</strong></p>
+          </div>
+        </div>
+      </div>
+      <!-- Summary box -->
+      <div class="summary-box" id="summaryBox">
+        <h4>📊 Ringkasan Hasil</h4>
+        <div class="summary-grid" id="summaryGrid">
+          <p style="color:var(--text-dim)">Jalankan kalkulasi untuk melihat ringkasan.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERBANDINGAN -->
+    <div class="tab-panel" id="panel-compare">
+      <div class="compare-layout">
+        <div class="compare-chart-wrap">
+          <canvas id="compareChart"></canvas>
+        </div>
+        <div class="compare-table-wrap">
+          <table class="data-table compare-table">
+            <thead>
+              <tr>
+                <th>Metode</th>
+                <th>Hasil f'(x₀)</th>
+                <th>Error vs Central (%)</th>
+                <th>Akurasi</th>
+              </tr>
+            </thead>
+            <tbody id="compareBody">
+              <tr><td colspan="4" class="empty-cell">Jalankan kalkulasi dahulu.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- KONVERGENSI -->
+    <div class="tab-panel" id="panel-conv">
+      <div class="conv-desc">
+        <p>Grafik ini menunjukkan bagaimana hasil aproksimasi <strong>berkonvergensi</strong> saat nilai h semakin kecil.</p>
+      </div>
+      <div class="chart-container" style="height:380px;">
+        <canvas id="convChart"></canvas>
+      </div>
+    </div>
+
+    <!-- TEORI -->
+    <div class="tab-panel" id="panel-info">
+      <div class="info-content">
+        <h2>📖 Teori Beda Hingga (Finite Difference)</h2>
+        <p>Diferensiasi numerik adalah teknik untuk menghitung turunan suatu fungsi menggunakan nilai fungsi pada titik-titik diskret, tanpa perlu mengetahui ekspresi analitiknya secara eksplisit.</p>
+
+        <div class="info-cards">
+          <div class="info-card info-fwd">
+            <h3>🟡 Forward Difference</h3>
+            <p>Diturunkan dari ekspansi deret Taylor ke depan:</p>
+            <div class="formula-display">f(x+h) = f(x) + hf'(x) + h²f''(x)/2! + ...</div>
+            <p>Sehingga: <code>f'(x) ≈ [f(x+h) - f(x)] / h</code></p>
+            <p><strong>Error truncation:</strong> O(h) — proporsional terhadap h</p>
+          </div>
+
+          <div class="info-card info-bwd">
+            <h3>🔴 Backward Difference</h3>
+            <p>Diturunkan dari ekspansi deret Taylor ke belakang:</p>
+            <div class="formula-display">f(x-h) = f(x) - hf'(x) + h²f''(x)/2! - ...</div>
+            <p>Sehingga: <code>f'(x) ≈ [f(x) - f(x-h)] / h</code></p>
+            <p><strong>Error truncation:</strong> O(h) — proporsional terhadap h</p>
+          </div>
+
+          <div class="info-card info-cen">
+            <h3>🟢 Central Difference</h3>
+            <p>Kombinasi forward dan backward, suku error orde pertama saling menghilangkan:</p>
+            <div class="formula-display">f'(x) ≈ [f(x+h) - f(x-h)] / 2h</div>
+            <p><strong>Error truncation:</strong> O(h²) — jauh lebih akurat!</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:2rem;">📐 Tabel Formula Lengkap</h3>
+        <table class="data-table">
+          <thead>
+            <tr><th>Orde</th><th>Forward</th><th>Backward</th><th>Central</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1st</strong></td>
+              <td class="mono">[f(x+h) − f(x)] / h</td>
+              <td class="mono">[f(x) − f(x−h)] / h</td>
+              <td class="mono">[f(x+h) − f(x−h)] / 2h</td>
+            </tr>
+            <tr>
+              <td><strong>2nd</strong></td>
+              <td class="mono">[f(x+2h) − 2f(x+h) + f(x)] / h²</td>
+              <td class="mono">[f(x) − 2f(x−h) + f(x−2h)] / h²</td>
+              <td class="mono">[f(x+h) − 2f(x) + f(x−h)] / h²</td>
+            </tr>
+            <tr>
+              <td><strong>3rd</strong></td>
+              <td class="mono">[f(x+3h)−3f(x+2h)+3f(x+h)−f(x)] / h³</td>
+              <td class="mono">[f(x)−3f(x−h)+3f(x−2h)−f(x−3h)] / h³</td>
+              <td class="mono">[f(x+2h)−2f(x+h)+2f(x−h)−f(x−2h)] / 2h³</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- Mobile FAB -->
+<button class="mobile-panel-toggle" id="mobileFab" aria-label="Open settings" onclick="toggleMobilePanel()">⚙</button>
+
+<script src="js/main.js"></script>
+</body>
+</html>
