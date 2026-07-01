@@ -498,4 +498,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial state badges
   selectMethod('forward');
   selectOrder(1);
+
+  // ── Auto-open sidebar on mobile ────────────────────────────
+  // Deteksi mobile (lebar ≤768px) dan langsung buka sidebar
+  if (window.innerWidth <= 768) {
+    // Gunakan requestAnimationFrame agar DOM benar-benar siap
+    requestAnimationFrame(() => openMobilePanel());
+  }
 });
+
+// Buka panel TANPA backdrop overlay (untuk auto-open awal)
+function openMobilePanelSilent() {
+  state.panelOpen = true;
+  document.querySelector('.left-panel').classList.add('open');
+  // Tidak menampilkan overlay agar konten kanan tetap accessible
+  const fab = document.getElementById('mobileFab');
+  if (fab) fab.textContent = '✕';
+}
