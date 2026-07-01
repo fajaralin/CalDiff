@@ -132,7 +132,7 @@ function generateTable(fn, x, h, method, order, steps = 5) {
 /**
  * Generate chart data: original function + derivative curves
  */
-function generateChartData(fn, x, h, rangeMin, rangeMax, points = 200) {
+function generateChartData(fn, x, h, rangeMin, rangeMax, order = 1, points = 200) {
   const step = (rangeMax - rangeMin) / points;
   const funcData = [], forwardData = [], backwardData = [], centralData = [];
 
@@ -141,9 +141,10 @@ function generateChartData(fn, x, h, rangeMin, rangeMax, points = 200) {
     const fxi = safeEval(fn, xi);
     funcData.push({ x: xi, y: fxi });
 
-    const fw = forwardDiff(fn, xi, h, 1);
-    const bw = backwardDiff(fn, xi, h, 1);
-    const cd = centralDiff(fn, xi, h, 1);
+    // FIX: gunakan order yang dipilih user, bukan hardcode 1
+    const fw = forwardDiff(fn, xi, h, order);
+    const bw = backwardDiff(fn, xi, h, order);
+    const cd = centralDiff(fn, xi, h, order);
     forwardData.push({ x: xi, y: fw });
     backwardData.push({ x: xi, y: bw });
     centralData.push({ x: xi, y: cd });
@@ -187,14 +188,23 @@ app.post('/api/calculate', (req, res) => {
 
   // Error analysis (relative error between methods)
   const trueVal = comparison.central; // use central as "most accurate" reference
-  const errorForward  = trueVal !== null && comparison.forward  !== null ? Math.abs((comparison.forward  - trueVal) / trueVal) * 100 : null;
-  const errorBackward = trueVal !== null && comparison.backward !== null ? Math.abs((comparison.backward - trueVal) / trueVal) * 100 : null;
+  // FIX: jika trueVal = 0, hindari pembagian nol — gunakan absolute error saja
+  const errorForward  = trueVal !== null && comparison.forward  !== null
+    ? (trueVal !== 0
+        ? Math.abs((comparison.forward  - trueVal) / trueVal) * 100
+        : Math.abs(comparison.forward  - trueVal) * 100)
+    : null;
+  const errorBackward = trueVal !== null && comparison.backward !== null
+    ? (trueVal !== 0
+        ? Math.abs((comparison.backward - trueVal) / trueVal) * 100
+        : Math.abs(comparison.backward - trueVal) * 100)
+    : null;
 
   // Table
   const table = generateTable(func, xNum, hNum, method, orderNum);
 
-  // Chart
-  const chart = generateChartData(func, xNum, hNum, rMin, rMax);
+  // Chart — FIX: teruskan orderNum agar grafik sesuai orde yang dipilih
+  const chart = generateChartData(func, xNum, hNum, rMin, rMax, orderNum);
 
   // Formulas
   const formulas = {
